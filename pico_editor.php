@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Editor plugin for Pico
  *
@@ -14,6 +13,7 @@ class Pico_Editor {
 	private $is_logout;
 	private $plugin_path;
 	private $password;
+	private $pico_path;
 	
 	public function __construct()
 	{
@@ -21,12 +21,15 @@ class Pico_Editor {
 		$this->is_logout = false;
 		$this->plugin_path = dirname(__FILE__);
 		$this->password = '';
+		$this->pico_path = 'pico';
 		session_start();
 		
 		if(file_exists($this->plugin_path .'/pico_editor_config.php')){
 			global $pico_editor_password;
+			global $pico_root_path;
 			include_once($this->plugin_path .'/pico_editor_config.php');
 			$this->password = $pico_editor_password;
+			$this->pico_path = $pico_root_path;
 		}
 	}
 	
@@ -111,25 +114,30 @@ Date: '. date('Y/m/d') .'
 	{
 		if(!isset($_SESSION['pico_logged_in']) || !$_SESSION['pico_logged_in']) die(json_encode(array('error' => 'Error: Unathorized')));
 		$file_url = isset($_POST['file']) && $_POST['file'] ? $_POST['file'] : '';
-		$file = basename(strip_tags($file_url));
-		if(!$file) die('Error: Invalid file');
-		
+//		$filez = basename(strip_tags($file_url));
+		$file = preg_replace('#http\:\/\/'.$_SERVER['HTTP_HOST'].'\/'.$this->pico_path.'#','',$file_url);
+		if(!$file) die('Error: Invalid file: $file');
+		$index = "$file/index.md";
 		$file .= CONTENT_EXT;
 		if(file_exists(CONTENT_DIR . $file)) die(file_get_contents(CONTENT_DIR . $file));
-		else die('Error: Invalid file');
-	}
+		else {
+		    if(file_exists(CONTENT_DIR . $index)) die(file_get_contents(CONTENT_DIR . $index));
+		    else die('Error2: Invalid file:'.CONTENT_DIR.$file."\n<- ($path) $file_url");
+	}	}
 	
 	private function do_save()
 	{
 		if(!isset($_SESSION['pico_logged_in']) || !$_SESSION['pico_logged_in']) die(json_encode(array('error' => 'Error: Unathorized')));
 		$file_url = isset($_POST['file']) && $_POST['file'] ? $_POST['file'] : '';
-		$file = basename(strip_tags($file_url));
+//		$file = basename(strip_tags($file_url));
+		$file = preg_replace('#http\:\/\/'.$_SERVER['HTTP_HOST'].'\/'.$this->pico_path.'#','',$file_url);
 		if(!$file) die('Error: Invalid file');
 		$content = isset($_POST['content']) && $_POST['content'] ? $_POST['content'] : '';
 		if(!$content) die('Error: Invalid content');
 		
 		$file .= CONTENT_EXT;
-		file_put_contents(CONTENT_DIR . $file, $content);
+		$file = preg_replace('#\/\.md#',"/index.md",$file);
+		file_put_contents(CONTENT_DIR . $file, $content.'\n'.$file);
 		die($content);
 	}
 	
@@ -137,10 +145,12 @@ Date: '. date('Y/m/d') .'
 	{
 		if(!isset($_SESSION['pico_logged_in']) || !$_SESSION['pico_logged_in']) die(json_encode(array('error' => 'Error: Unathorized')));
 		$file_url = isset($_POST['file']) && $_POST['file'] ? $_POST['file'] : '';
-		$file = basename(strip_tags($file_url));
+//		$file = basename(strip_tags($file_url));
+		$file = preg_replace('#http\:\/\/'.$_SERVER['HTTP_HOST'].'\/'.$this->pico_path.'#','',$file_url);
 		if(!$file) die('Error: Invalid file');
 		
 		$file .= CONTENT_EXT;
+		$file = preg_replace('#\/\.md#',"/index.md",$file);
 		if(file_exists(CONTENT_DIR . $file)) die(unlink(CONTENT_DIR . $file));
 	}
 	
